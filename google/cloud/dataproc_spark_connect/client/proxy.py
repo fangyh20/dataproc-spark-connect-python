@@ -192,6 +192,7 @@ class DataprocSessionProxy(object):
             s.release()
             while not self._killed:
                 conn, addr = frontend_socket.accept()
+                conn.settimeout(1)
                 logger.debug(f"Accepted a connection from {addr}...")
                 self._conn_number += 1
                 threading.Thread(
