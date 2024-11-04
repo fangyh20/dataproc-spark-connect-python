@@ -102,14 +102,49 @@ def forward_bytes(name, from_sock, to_sock):
             bs = from_sock.recv(1024)
             if not bs:
                 return
-            to_sock.send(bs)
+            while bs:
+                try:
+                    to_sock.send(bs)
+                    bs = None
+                except TimeoutError:
+                    # On timeouts during a send, we retry just the send
+                    # to make sure we don't lose any bytes.
+                    pass
         except TimeoutError:
-            # On timeouts we simply want to poll again.
+            # On timeouts during a receive, we retry the entire flow.
             pass
         except Exception as ex:
             logger.debug(f"[{name}] Exception forwarding bytes: {ex}")
             to_sock.close()
             return
+
+
+def connect_sockets(conn_number, from_sock, to_sock):
+    """Create a connection between the two given ports.
+
+    This method continuously streams bytes in both directions between the
+    given `from_sock` and `to_sock` socket-like objects.
+
+    The caller is responsible for creating and closing the supplied socekts.
+    """
+    forward_name = f"{conn_number}-forward"
+    t1 = threading.Thread(
+        name=forward_name,
+        target=forward_bytes,
+        args=[forward_name, from_sock, to_sock],
+        daemon=True,
+    )
+    t1.start()
+    backward_name = f"{conn_number}-backward"
+    t2 = threading.Thread(
+        name=backward_name,
+        target=forward_bytes,
+        args=[backward_name, to_sock, from_sock],
+        daemon=True,
+    )
+    t2.start()
+    t1.join()
+    t2.join()
 
 
 def forward_connection(conn_number, conn, addr, target_host):
@@ -128,24 +163,7 @@ def forward_connection(conn_number, conn, addr, target_host):
     with conn:
         with connect_tcp_bridge(target_host) as websocket_conn:
             backend_socket = bridged_socket(websocket_conn)
-            forward_name = f"{conn_number}-forward"
-            t1 = threading.Thread(
-                name=forward_name,
-                target=forward_bytes,
-                args=[forward_name, conn, backend_socket],
-                daemon=True,
-            )
-            t1.start()
-            backward_name = f"{conn_number}-backward"
-            t2 = threading.Thread(
-                name=backward_name,
-                target=forward_bytes,
-                args=[backward_name, backend_socket, conn],
-                daemon=True,
-            )
-            t2.start()
-            t1.join()
-            t2.join()
+            connect_sockets(conn_number, conn, backend_socket)
 
 
 class DataprocSessionProxy(object):
@@ -192,6 +210,14 @@ class DataprocSessionProxy(object):
             s.release()
             while not self._killed:
                 conn, addr = frontend_socket.accept()
+                # Set a timeout on how long we will allow send/recv calls to block
+                #
+                # The code that reads and writes to this connection will retry
+                # on timeouts, so this is a safe change.
+                #
+                # The chosen timeout is a very short one because it allows us
+                # to more quickly detect when a connection has been closed.
+                conn.settimeout(1)
                 logger.debug(f"Accepted a connection from {addr}...")
                 self._conn_number += 1
                 threading.Thread(
