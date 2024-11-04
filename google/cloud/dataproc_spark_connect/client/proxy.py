@@ -210,6 +210,13 @@ class DataprocSessionProxy(object):
             s.release()
             while not self._killed:
                 conn, addr = frontend_socket.accept()
+                # Set a timeout on how long we will allow send/recv calls to block
+                #
+                # The code that reads and writes to this connection will retry
+                # on timeouts, so this is a safe change.
+                #
+                # The chosen timeout is a very short one because it allows us
+                # to more quickly detect when a connection has been closed.
                 conn.settimeout(1)
                 logger.debug(f"Accepted a connection from {addr}...")
                 self._conn_number += 1
