@@ -1,5 +1,5 @@
 google-api-core>=2.19.1
-# TODO: Add google_cloud_dataproc version once it's available
+google-cloud-dataproc>=5.15.1
 pandas>=2.2.2
 pyarrow>=17.0.0
 pyspark==3.5
