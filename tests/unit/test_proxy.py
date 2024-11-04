@@ -82,7 +82,9 @@ def echo_server_conn(outgoing_socket_timeout, backend_wait):
             t.start()
 
     with socket.create_server(("127.0.0.1", 0)) as server_socket:
-        t = threading.Thread(target=echo_server, args=[server_socket], daemon=True)
+        t = threading.Thread(
+            target=echo_server, args=[server_socket], daemon=True
+        )
         t.start()
         yield socket.create_connection(server_socket.getsockname())
 
@@ -94,7 +96,7 @@ def test_echo_server(echo_server_conn, test_message):
         sent.append(line)
         echo_server_conn.send(line.encode())
         received.append(echo_server_conn.recv(1024).decode())
-    assert '\n'.join(sent) == '\n'.join(received)
+    assert "\n".join(sent) == "\n".join(received)
 
 
 @pytest.fixture
@@ -103,12 +105,18 @@ def proxy_server_conn(incoming_socket_timeout, echo_server_conn):
         conn_number = 0
         while True:
             incoming_conn, _ = server_socket.accept()
-            t = threading.Thread(target=connect_sockets, args=[conn_number, incoming_conn, echo_server_conn], daemon=True)
+            t = threading.Thread(
+                target=connect_sockets,
+                args=[conn_number, incoming_conn, echo_server_conn],
+                daemon=True,
+            )
             t.start()
             conn_number += 1
 
     with socket.create_server(("127.0.0.1", 0)) as server_socket:
-        t = threading.Thread(target=proxy_server, args=[server_socket], daemon=True)
+        t = threading.Thread(
+            target=proxy_server, args=[server_socket], daemon=True
+        )
         t.start()
         conn = socket.create_connection(server_socket.getsockname())
         conn.settimeout(incoming_socket_timeout)
@@ -131,5 +139,7 @@ def test_proxy_with_timeouts(client_wait, proxy_server_conn, test_message):
         sent.append(line)
         retry_on_timeouts(proxy_server_conn.send, line.encode())
         time.sleep(client_wait)
-        received.append(retry_on_timeouts(proxy_server_conn.recv, 1024).decode())
-    assert '\n'.join(sent) == '\n'.join(received)
+        received.append(
+            retry_on_timeouts(proxy_server_conn.recv, 1024).decode()
+        )
+    assert "\n".join(sent) == "\n".join(received)
