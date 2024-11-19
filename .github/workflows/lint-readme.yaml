@@ -35,8 +35,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install setuptools
-      run: pip install setuptools docutils
+    - name: Install dependencies
+      run: pip install setuptools docutils pygments
 
     - name: Lint Readme
       run: python setup.py check --restructuredtext --strict
