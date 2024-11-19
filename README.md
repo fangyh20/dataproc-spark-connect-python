@@ -6,15 +6,16 @@ Spark cluster using the Spark Connect protocol without requiring additional step
 
 ## Install
 
-```
-pip install dataproc_spark_connect
-```
+.. code-block:: console
+
+      pip install dataproc_spark_connect
 
 ## Uninstall
 
-```
-pip uninstall dataproc_spark_connect
-```
+.. code-block:: console
+
+      pip uninstall dataproc_spark_connect
+
 
 ## Setup
 This client requires permissions to manage [Dataproc sessions and session templates](https://cloud.google.com/dataproc-serverless/docs/concepts/iam).
@@ -28,33 +29,37 @@ If you are running the client outside of Google Cloud, you must set following en
 ## Usage
 
 1. Install the latest version of Dataproc Python client and Dataproc Spark Connect modules:
-```
-pip install google_cloud_dataproc --force-reinstall
-pip install dataproc_spark_connect --force-reinstall
-```
+
+      .. code-block:: console
+
+            pip install google_cloud_dataproc --force-reinstall
+            pip install dataproc_spark_connect --force-reinstall
 
 2. Add the required import into your PySpark application or notebook:
-```python
-from google.cloud.dataproc_spark_connect import DataprocSparkSession
 
-```
+      .. code-block:: python
+
+            from google.cloud.dataproc_spark_connect import DataprocSparkSession
 
 3. There are two ways to create a spark session,
+
    1. Start a Spark session using properties defined in `DATAPROC_SPARK_CONNECT_SESSION_DEFAULT_CONFIG`:
-      ```python
-      spark = DataprocSparkSession.builder.getOrCreate()
-      ```
+
+      .. code-block:: python
+
+            spark = DataprocSparkSession.builder.getOrCreate()
 
    2. Start a Spark session with the following code instead of using a config file:
-      ```python
-      from google.cloud.dataproc_v1 import SparkConnectConfig
-      from google.cloud.dataproc_v1 import Session
-      dataproc_config = Session()
-      dataproc_config.spark_connect_session = SparkConnectConfig()
-      dataproc_config.environment_config.execution_config.subnetwork_uri = "<subnet>"
-      dataproc_config.runtime_config.version = '3.0'
-      spark = DataprocSparkSession.builder.dataprocConfig(dataproc_config).getOrCreate()
-      ```
+
+      .. code-block:: python
+
+            from google.cloud.dataproc_v1 import SparkConnectConfig
+            from google.cloud.dataproc_v1 import Session
+            dataproc_config = Session()
+            dataproc_config.spark_connect_session = SparkConnectConfig()
+            dataproc_config.environment_config.execution_config.subnetwork_uri = "<subnet>"
+            dataproc_config.runtime_config.version = '3.0'
+            spark = DataprocSparkSession.builder.dataprocConfig(dataproc_config).getOrCreate()
 
 ## Billing
 As this client runs the spark workload on Dataproc, your project will be billed as per [Dataproc Serverless Pricing](https://cloud.google.com/dataproc-serverless/pricing).
@@ -62,29 +67,32 @@ This will happen even if you are running the client from a non-GCE instance.
 
 ## Contributing
 ### Building and Deploying SDK
+
 1. Install the requirements in virtual environment.
 
-```
-pip install -r requirements.txt
-```
+      .. code-block:: console
+
+            pip install -r requirements.txt
+
 2. Build the code.
 
-```
-python setup.py sdist bdist_wheel
-```
+      .. code-block:: console
 
-2. Copy the generated `.whl` file to Cloud Storage. Use the version specified in the `setup.py` file.
+            python setup.py sdist bdist_wheel
 
-```
-VERSION=<version> gsutil cp dist/dataproc_spark_connect-${VERSION}-py2.py3-none-any.whl gs://<your_bucket_name>
-```
 
-3. Download the new SDK on Vertex, then uninstall the old version and install the new one.
+3. Copy the generated `.whl` file to Cloud Storage. Use the version specified in the `setup.py` file.
 
-```
-%%bash
-export VERSION=<version>
-gsutil cp gs://<your_bucket_name>/dataproc_spark_connect-${VERSION}-py2.py3-none-any.whl .
-yes | pip uninstall dataproc_spark_connect
-pip install dataproc_spark_connect-${VERSION}-py2.py3-none-any.whl
-```
+      .. code-block:: console
+
+            VERSION=<version> gsutil cp dist/dataproc_spark_connect-${VERSION}-py2.py3-none-any.whl gs://<your_bucket_name>
+
+4. Download the new SDK on Vertex, then uninstall the old version and install the new one.
+
+      .. code-block:: console
+
+            %%bash
+            export VERSION=<version>
+            gsutil cp gs://<your_bucket_name>/dataproc_spark_connect-${VERSION}-py2.py3-none-any.whl .
+            yes | pip uninstall dataproc_spark_connect
+            pip install dataproc_spark_connect-${VERSION}-py2.py3-none-any.whl
