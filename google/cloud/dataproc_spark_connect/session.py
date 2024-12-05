@@ -196,13 +196,13 @@ class DataprocSparkSession(SparkSession):
                 session_id = self.generate_dataproc_session_id()
 
                 session_request.session_id = session_id
-                dataproc_config.name = f"projects/{self._project_id}/regions/{self._region}/sessions/{session_id}"
+                dataproc_config.name = f"projects/{self._project_id}/locations/{self._region}/sessions/{session_id}"
                 logger.debug(
                     f"Configurations used to create serverless session:\n {dataproc_config}"
                 )
                 session_request.session = dataproc_config
                 session_request.parent = (
-                    f"projects/{self._project_id}/regions/{self._region}"
+                    f"projects/{self._project_id}/locations/{self._region}"
                 )
 
                 logger.debug("Creating serverless session")

@@ -92,9 +92,9 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         create_session_request = CreateSessionRequest.wrap(
             text_format.Parse(
                 """
-        parent: "projects/test-project/regions/test-region"
+        parent: "projects/test-project/locations/test-region"
         session {
-          name: "projects/test-project/regions/test-region/sessions/sc-20240702-103952-abcdef"
+          name: "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
           runtime_config {
             version: "_DEFAULT_RUNTIME_VERSION_"
           }
@@ -183,9 +183,9 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         create_session_request = CreateSessionRequest.wrap(
             text_format.Parse(
                 """
-        parent: "projects/test-project/regions/test-region"
+        parent: "projects/test-project/locations/test-region"
         session {
-          name: "projects/test-project/regions/test-region/sessions/sc-20240702-103952-abcdef"
+          name: "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
           runtime_config {
             version: "_DEFAULT_RUNTIME_VERSION_"
             properties: {
@@ -306,9 +306,9 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         create_session_request = CreateSessionRequest.wrap(
             text_format.Parse(
                 """
-        parent: "projects/test-project/regions/test-region"
+        parent: "projects/test-project/locations/test-region"
         session {
-          name: "projects/test-project/regions/test-region/sessions/sc-20240702-103952-abcdef"
+          name: "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
           runtime_config {
             version: "_DEFAULT_RUNTIME_VERSION_"
           }
@@ -407,9 +407,9 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         create_session_request = CreateSessionRequest.wrap(
             text_format.Parse(
                 """
-        parent: "projects/test-project/regions/test-region"
+        parent: "projects/test-project/locations/test-region"
         session {
-          name: "projects/test-project/regions/test-region/sessions/sc-20240702-103952-abcdef"
+          name: "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
           runtime_config {
             version: "_DEFAULT_RUNTIME_VERSION_"
           }

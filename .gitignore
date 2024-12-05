@@ -1,6 +1,7 @@
-build/
-dist/
-.idea
 *.egg-info/
 *~
+.*.sw[nop]
+.idea
 __pycache__
+build/
+dist/
