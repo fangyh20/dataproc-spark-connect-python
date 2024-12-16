@@ -76,7 +76,10 @@ def echo_server_conn(outgoing_socket_timeout, backend_wait):
 
     def echo_server(server_socket):
         while True:
-            conn, _ = server_socket.accept()
+            try:
+                conn, _ = server_socket.accept()
+            except ConnectionAbortedError:
+                return
             conn.settimeout(outgoing_socket_timeout)
             t = threading.Thread(target=echo_messages, args=[conn], daemon=True)
             t.start()
@@ -104,7 +107,10 @@ def proxy_server_conn(incoming_socket_timeout, echo_server_conn):
     def proxy_server(server_socket):
         conn_number = 0
         while True:
-            incoming_conn, _ = server_socket.accept()
+            try:
+                incoming_conn, _ = server_socket.accept()
+            except ConnectionAbortedError:
+                return
             t = threading.Thread(
                 target=connect_sockets,
                 args=[conn_number, incoming_conn, echo_server_conn],
