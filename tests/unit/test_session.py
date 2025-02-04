@@ -605,7 +605,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
             if session is not None:
                 session.stop()
             self.assertIsNone(GoogleSparkSession._active_s8s_session_uuid)
-    
+
     @mock.patch("pyspark.sql.connect.client.SparkConnectClient.config")
     @mock.patch("google.auth.default")
     @mock.patch("google.cloud.dataproc_v1.SessionControllerClient")

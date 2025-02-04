@@ -539,8 +539,8 @@ def terminate_s8s_session(
             sleep(1)
     except NotFound:
         logger.debug(f"Session {active_s8s_session_id} already deleted")
-    # Client will get 'Aborted' error if session creation is still in progress and 
-    # 'FailedPrecondition' if another termination is still in progress. 
+    # Client will get 'Aborted' error if session creation is still in progress and
+    # 'FailedPrecondition' if another termination is still in progress.
     # Both are retryable but we catch it and let TTL take care of cleanups.
     except (FailedPrecondition, Aborted):
         logger.debug(
