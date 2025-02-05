@@ -152,6 +152,8 @@ class GoogleSparkSession(SparkSession):
                 "Spark Connect Server"
             )
             spark_connect_url = spark_connect_url.replace("https", "sc")
+            if not spark_connect_url.endswith("/"):
+                spark_connect_url += "/"
             url = f"{spark_connect_url.replace('.com/', '.com:443/')};session_id={session_response.uuid};use_ssl=true"
             logger.debug(f"Spark Connect URL: {url}")
             self._channel_builder = DataprocChannelBuilder(url)
