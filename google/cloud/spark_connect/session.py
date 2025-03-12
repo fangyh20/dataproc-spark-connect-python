@@ -143,7 +143,7 @@ class GoogleSparkSession(SparkSession):
             )
 
         def __create_spark_connect_session_from_s8s(
-            self, session_response
+            self, session_response, session_name
         ) -> "SparkSession":
             GoogleSparkSession._active_s8s_session_uuid = session_response.uuid
             GoogleSparkSession._project_id = self._project_id
@@ -157,7 +157,12 @@ class GoogleSparkSession(SparkSession):
                 spark_connect_url += "/"
             url = f"{spark_connect_url.replace('.com/', '.com:443/')};session_id={session_response.uuid};use_ssl=true"
             logger.debug(f"Spark Connect URL: {url}")
-            self._channel_builder = DataprocChannelBuilder(url)
+            self._channel_builder = DataprocChannelBuilder(
+                url,
+                is_active_callback=lambda: is_s8s_session_active(
+                    session_name, self._client_options
+                ),
+            )
 
             assert self._channel_builder is not None
             session = GoogleSparkSession(connection=self._channel_builder)
@@ -276,34 +281,15 @@ class GoogleSparkSession(SparkSession):
                     f"Serverless session created: {session_id}, creation time taken: {int(time.time() - s8s_creation_start_time)} seconds"
                 )
                 return self.__create_spark_connect_session_from_s8s(
-                    session_response
+                    session_response, dataproc_config.name
                 )
-
-        def _is_s8s_session_active(
-            self, s8s_session_id: str
-        ) -> Optional[sessions.Session]:
-            session_name = f"projects/{self._project_id}/locations/{self._region}/sessions/{s8s_session_id}"
-            get_session_request = GetSessionRequest()
-            get_session_request.name = session_name
-            state = None
-            try:
-                get_session_response = SessionControllerClient(
-                    client_options=self._client_options
-                ).get_session(get_session_request)
-                state = get_session_response.state
-            except Exception as e:
-                logger.debug(f"{s8s_session_id} deleted: {e}")
-                return None
-
-            if state is not None and (
-                state == Session.State.ACTIVE or state == Session.State.CREATING
-            ):
-                return get_session_response
-            return None
 
         def _get_exiting_active_session(self) -> Optional["SparkSession"]:
             s8s_session_id = GoogleSparkSession._active_s8s_session_id
-            session_response = self._is_s8s_session_active(s8s_session_id)
+            session_name = f"projects/{self._project_id}/locations/{self._region}/sessions/{s8s_session_id}"
+            session_response = get_active_s8s_session_response(
+                session_name, self._client_options
+            )
 
             session = GoogleSparkSession.getActiveSession()
             if session is None:
@@ -315,7 +301,7 @@ class GoogleSparkSession(SparkSession):
                 )
                 if session is None:
                     session = self.__create_spark_connect_session_from_s8s(
-                        session_response
+                        session_response, session_name
                     )
                 return session
             else:
@@ -549,3 +535,29 @@ def terminate_s8s_session(
         )
     if state is not None and state == Session.State.FAILED:
         raise RuntimeError("Serverless session termination failed")
+
+
+def get_active_s8s_session_response(
+    session_name, client_options
+) -> Optional[sessions.Session]:
+    get_session_request = GetSessionRequest()
+    get_session_request.name = session_name
+    try:
+        get_session_response = SessionControllerClient(
+            client_options=client_options
+        ).get_session(get_session_request)
+        state = get_session_response.state
+    except Exception as e:
+        logger.info(f"{session_name} deleted: {e}")
+        return None
+    if state is not None and (
+        state == Session.State.ACTIVE or state == Session.State.CREATING
+    ):
+        return get_session_response
+    return None
+
+
+def is_s8s_session_active(session_name, client_options) -> bool:
+    if get_active_s8s_session_response(session_name, client_options) is None:
+        return False
+    return True

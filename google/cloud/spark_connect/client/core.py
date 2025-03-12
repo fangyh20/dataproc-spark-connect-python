@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
+
 import google
 import grpc
 from pyspark.sql.connect.client import ChannelBuilder
 
 from . import proxy
+
+logger = logging.getLogger(__name__)
 
 
 class DataprocChannelBuilder(ChannelBuilder):
@@ -36,6 +40,10 @@ class DataprocChannelBuilder(ChannelBuilder):
     True
     """
 
+    def __init__(self, url, is_active_callback=None):
+        self._is_active_callback = is_active_callback
+        super().__init__(url)
+
     def toChannel(self) -> grpc.Channel:
         """
         Applies the parameters of the connection string and creates a new
@@ -51,7 +59,7 @@ class DataprocChannelBuilder(ChannelBuilder):
         return self._proxied_channel()
 
     def _proxied_channel(self) -> grpc.Channel:
-        return ProxiedChannel(self.host)
+        return ProxiedChannel(self.host, self._is_active_callback)
 
     def _direct_channel(self) -> grpc.Channel:
         destination = f"{self.host}:{self.port}"
@@ -75,7 +83,8 @@ class DataprocChannelBuilder(ChannelBuilder):
 
 class ProxiedChannel(grpc.Channel):
 
-    def __init__(self, target_host):
+    def __init__(self, target_host, is_active_callback):
+        self._is_active_callback = is_active_callback
         self._proxy = proxy.DataprocSessionProxy(0, target_host)
         self._proxy.start()
         self._proxied_connect_url = f"sc://localhost:{self._proxy.port}"
@@ -94,20 +103,37 @@ class ProxiedChannel(grpc.Channel):
         self._proxy.stop()
         return ret
 
+    def _wrap_method(self, wrapped_method):
+        if self._is_active_callback is None:
+            return wrapped_method
+
+        def checked_method(*margs, **mkwargs):
+            if (
+                self._is_active_callback is not None
+                and not self._is_active_callback()
+            ):
+                logger.warning(f"Session is no longer active")
+                raise RuntimeError(
+                    "Session not active. Please create a new session"
+                )
+            return wrapped_method(*margs, **mkwargs)
+
+        return checked_method
+
     def stream_stream(self, *args, **kwargs):
-        return self._wrapped.stream_stream(*args, **kwargs)
+        return self._wrap_method(self._wrapped.stream_stream(*args, **kwargs))
 
     def stream_unary(self, *args, **kwargs):
-        return self._wrapped.stream_unary(*args, **kwargs)
+        return self._wrap_method(self._wrapped.stream_unary(*args, **kwargs))
 
     def subscribe(self, *args, **kwargs):
-        return self._wrapped.subscribe(*args, **kwargs)
+        return self._wrap_method(self._wrapped.subscribe(*args, **kwargs))
 
     def unary_stream(self, *args, **kwargs):
-        return self._wrapped.unary_stream(*args, **kwargs)
+        return self._wrap_method(self._wrapped.unary_stream(*args, **kwargs))
 
     def unary_unary(self, *args, **kwargs):
-        return self._wrapped.unary_unary(*args, **kwargs)
+        return self._wrap_method(self._wrapped.unary_unary(*args, **kwargs))
 
     def unsubscribe(self, *args, **kwargs):
-        return self._wrapped.unsubscribe(*args, **kwargs)
+        return self._wrap_method(self._wrapped.unsubscribe(*args, **kwargs))
