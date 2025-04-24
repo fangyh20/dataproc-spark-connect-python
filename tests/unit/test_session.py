@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import unittest
-from unittest import mock
 
 from google.api_core.exceptions import (
     Aborted,
@@ -21,33 +20,27 @@ from google.api_core.exceptions import (
     InvalidArgument,
     NotFound,
 )
+from google.cloud.dataproc_spark_connect import DataprocSparkSession
+from google.cloud.dataproc_spark_connect.exceptions import DataprocSparkConnectException
 from google.cloud.dataproc_v1 import (
+    AuthenticationConfig,
     CreateSessionRequest,
     GetSessionRequest,
     Session,
-    SessionTemplate,
+    SparkConnectConfig,
     TerminateSessionRequest,
 )
-from google.protobuf import text_format
-from google.protobuf.text_format import ParseError
 from pyspark.sql.connect.client.core import ConfigResult
 from pyspark.sql.connect.proto import ConfigResponse
-
-from google.cloud.dataproc_spark_connect import DataprocSparkSession
-from google.cloud.dataproc_spark_connect.exceptions import DataprocSparkConnectException
+from unittest import mock
 
 
 class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
 
     def setUp(self):
-        self._default_runtime_version = "3.0"
-        self._resources_dir = os.path.join(
-            os.path.dirname(__file__), "resources"
-        )
+        self._default_runtime_version = "2.2"
         self.original_environment = dict(os.environ)
-        os.environ["DATAPROC_SPARK_CONNECT_SESSION_DEFAULT_CONFIG"] = (
-            self._resources_dir + "/session.textproto"
-        )
+        os.environ.clear()
         os.environ["GOOGLE_CLOUD_PROJECT"] = "test-project"
         os.environ["GOOGLE_CLOUD_REGION"] = "test-region"
 
@@ -105,34 +98,20 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         mock_session_controller_client_instance.create_session.return_value = (
             mock_operation
         )
+
         create_session_request = CreateSessionRequest()
-        create_session_request = CreateSessionRequest.wrap(
-            text_format.Parse(
-                """
-        parent: "projects/test-project/locations/test-region"
-        session {
-          name: "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
-          runtime_config {
-            version: "_DEFAULT_RUNTIME_VERSION_"
-          }
-          environment_config {
-            execution_config {
-              network_uri: "test_network_uri"
-              idle_ttl {
-                seconds: 5
-              }
-            }
-          }
-          spark_connect_session {
-          }
-        }
-        session_id: "sc-20240702-103952-abcdef"
-        """.replace(
-                    "_DEFAULT_RUNTIME_VERSION_", self._default_runtime_version
-                ),
-                CreateSessionRequest.pb(create_session_request),
-            )
+        create_session_request.parent = (
+            "projects/test-project/locations/test-region"
         )
+        create_session_request.session.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+        create_session_request.session.runtime_config.version = (
+            self._default_runtime_version
+        )
+        create_session_request.session.spark_connect_session = (
+            SparkConnectConfig()
+        )
+        create_session_request.session_id = "sc-20240702-103952-abcdef"
+
         try:
             session = DataprocSparkSession.builder.getOrCreate()
             mock_session_controller_client_instance.create_session.assert_called_once_with(
@@ -243,42 +222,33 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         mock_session_controller_client_instance.create_session.return_value = (
             mock_operation
         )
+
         create_session_request = CreateSessionRequest()
-        create_session_request = CreateSessionRequest.wrap(
-            text_format.Parse(
-                """
-        parent: "projects/test-project/locations/test-region"
-        session {
-          name: "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
-          runtime_config {
-            version: "_DEFAULT_RUNTIME_VERSION_"
-            properties: {
-                key: "spark.executor.cores"
-                value: "16"
-            }
-          }
-          environment_config {
-            execution_config {
-              network_uri: "user_passed_network_uri"
-              ttl {
-                seconds: 10
-              }
-            }
-          }
-          spark_connect_session {
-          }
-        }
-        session_id: "sc-20240702-103952-abcdef"
-        """.replace(
-                    "_DEFAULT_RUNTIME_VERSION_", self._default_runtime_version
-                ),
-                CreateSessionRequest.pb(create_session_request),
-            )
+        create_session_request.session.environment_config.execution_config.subnetwork_uri = (
+            "user_passed_subnetwork_uri"
         )
+        create_session_request.session.environment_config.execution_config.ttl = {
+            "seconds": 10
+        }
+        create_session_request.parent = (
+            "projects/test-project/locations/test-region"
+        )
+        create_session_request.session.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+        create_session_request.session.runtime_config.properties = {
+            "spark.executor.cores": "16"
+        }
+        create_session_request.session.runtime_config.version = (
+            self._default_runtime_version
+        )
+        create_session_request.session.spark_connect_session = (
+            SparkConnectConfig()
+        )
+        create_session_request.session_id = "sc-20240702-103952-abcdef"
+
         try:
             dataproc_config = Session()
-            dataproc_config.environment_config.execution_config.network_uri = (
-                "user_passed_network_uri"
+            dataproc_config.environment_config.execution_config.subnetwork_uri = (
+                "user_passed_subnetwork_uri"
             )
             dataproc_config.environment_config.execution_config.ttl = {
                 "seconds": 10
@@ -311,7 +281,101 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
                 get_session_request
             )
 
-    @mock.patch("google.cloud.dataproc_v1.SessionTemplateControllerClient")
+    @mock.patch("google.auth.default")
+    @mock.patch("google.cloud.dataproc_v1.SessionControllerClient")
+    @mock.patch(
+        "google.cloud.dataproc_spark_connect.DataprocSparkSession.Builder.generate_dataproc_session_id"
+    )
+    @mock.patch(
+        "google.cloud.dataproc_spark_connect.session.is_s8s_session_active"
+    )
+    def test_create_session_with_env_vars_config(
+        self,
+        mock_is_s8s_session_active,
+        mock_dataproc_session_id,
+        mock_session_controller_client,
+        mock_credentials,
+    ):
+        session = None
+        mock_is_s8s_session_active.return_value = True
+        mock_session_controller_client_instance = (
+            mock_session_controller_client.return_value
+        )
+        mock_dataproc_session_id.return_value = "sc-20240702-103952-abcdef"
+        cred = mock.MagicMock()
+        cred.token = "token"
+        mock_credentials.return_value = (cred, "")
+        mock_operation = mock.Mock()
+        session_response = Session()
+        session_response.runtime_info.endpoints = {
+            "Spark Connect Server": "sc://spark-connect-server.example.com:443"
+        }
+        session_response.uuid = "c002e4ef-fe5e-41a8-a157-160aa73e4f7f"
+        mock_operation.result.side_effect = [session_response]
+        mock_session_controller_client_instance.create_session.return_value = (
+            mock_operation
+        )
+
+        mock.patch.dict(
+            os.environ,
+            {
+                "DATAPROC_SPARK_CONNECT_AUTH_TYPE": "SERVICE_ACCOUNT",
+                "DATAPROC_SPARK_CONNECT_SERVICE_ACCOUNT": "test-acc@example.com",
+                "DATAPROC_SPARK_CONNECT_SUBNET": "test-subnet-from-env",
+                "DATAPROC_SPARK_CONNECT_TTL_SECONDS": "12",
+                "DATAPROC_SPARK_CONNECT_IDLE_TTL_SECONDS": "89",
+            },
+        ).start()
+
+        create_session_request = CreateSessionRequest()
+        create_session_request.session.environment_config.execution_config.authentication_config.user_workload_authentication_type = (
+            AuthenticationConfig.AuthenticationType.SERVICE_ACCOUNT
+        )
+        create_session_request.session.environment_config.execution_config.service_account = (
+            "test-acc@example.com"
+        )
+        create_session_request.session.environment_config.execution_config.subnetwork_uri = (
+            "test-subnet-from-env"
+        )
+        create_session_request.session.environment_config.execution_config.ttl = {
+            "seconds": 12
+        }
+        create_session_request.session.environment_config.execution_config.idle_ttl = {
+            "seconds": 89
+        }
+        create_session_request.parent = (
+            "projects/test-project/locations/test-region"
+        )
+        create_session_request.session.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+        create_session_request.session.runtime_config.version = (
+            self._default_runtime_version
+        )
+        create_session_request.session.spark_connect_session = (
+            SparkConnectConfig()
+        )
+        create_session_request.session_id = "sc-20240702-103952-abcdef"
+
+        try:
+            session = DataprocSparkSession.builder.getOrCreate()
+            mock_session_controller_client_instance.create_session.assert_called_once_with(
+                create_session_request
+            )
+        finally:
+            mock_session_controller_client_instance.terminate_session.return_value = (
+                mock.Mock()
+            )
+            self.stopSession(mock_session_controller_client_instance, session)
+            terminate_session_request = TerminateSessionRequest()
+            terminate_session_request.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+            get_session_request = GetSessionRequest()
+            get_session_request.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+            mock_session_controller_client_instance.terminate_session.assert_called_once_with(
+                terminate_session_request
+            )
+            mock_session_controller_client_instance.get_session.assert_called_once_with(
+                get_session_request
+            )
+
     @mock.patch("google.auth.default")
     @mock.patch("google.cloud.dataproc_v1.SessionControllerClient")
     @mock.patch("pyspark.sql.connect.client.SparkConnectClient.config")
@@ -328,7 +392,6 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         mock_client_config,
         mock_session_controller_client,
         mock_credentials,
-        mock_session_template_controller_client,
     ):
         session = None
         mock_is_s8s_session_active.return_value = True
@@ -352,38 +415,21 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         mock_session_controller_client_instance.create_session.return_value = (
             mock_operation
         )
-        mock_session_template_controller_client_instance = (
-            mock_session_template_controller_client.return_value
-        )
-        session_template_response = SessionTemplate()
-        session_template_response.name = "projects/test-project/locations/test-region/sessionTemplates/test_template"
-        session_template_response.environment_config.execution_config.network_uri = (
-            "template_network_uri"
-        )
-        mock_session_template_controller_client_instance.get_session_template.return_value = (
-            session_template_response
-        )
+
         create_session_request = CreateSessionRequest()
-        create_session_request = CreateSessionRequest.wrap(
-            text_format.Parse(
-                """
-        parent: "projects/test-project/locations/test-region"
-        session {
-          name: "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
-          runtime_config {
-            version: "_DEFAULT_RUNTIME_VERSION_"
-          }
-          spark_connect_session {
-          }
-          session_template: "projects/test-project/locations/test-region/sessionTemplates/test_template"
-        }
-        session_id: "sc-20240702-103952-abcdef"
-        """.replace(
-                    "_DEFAULT_RUNTIME_VERSION_", self._default_runtime_version
-                ),
-                CreateSessionRequest.pb(create_session_request),
-            )
+        create_session_request.parent = (
+            "projects/test-project/locations/test-region"
         )
+        create_session_request.session.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+        create_session_request.session.runtime_config.version = (
+            self._default_runtime_version
+        )
+        create_session_request.session.spark_connect_session = (
+            SparkConnectConfig()
+        )
+        create_session_request.session_id = "sc-20240702-103952-abcdef"
+        create_session_request.session.session_template = "projects/test-project/locations/test-region/sessionTemplates/test_template"
+
         try:
             dataproc_config = Session()
             dataproc_config.session_template = "projects/test-project/locations/test-region/sessionTemplates/test_template"
@@ -409,7 +455,6 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
                 get_session_request
             )
 
-    @mock.patch("google.cloud.dataproc_v1.SessionTemplateControllerClient")
     @mock.patch("google.auth.default")
     @mock.patch("google.cloud.dataproc_v1.SessionControllerClient")
     @mock.patch("pyspark.sql.connect.client.SparkConnectClient.config")
@@ -426,7 +471,6 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         mock_client_config,
         mock_session_controller_client,
         mock_credentials,
-        mock_session_template_controller_client,
     ):
         session = None
         mock_is_s8s_session_active.return_value = True
@@ -450,45 +494,24 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         mock_session_controller_client_instance.create_session.return_value = (
             mock_operation
         )
-        mock_session_template_controller_client_instance = (
-            mock_session_template_controller_client.return_value
-        )
-        session_template_response = SessionTemplate()
-        session_template_response.name = "projects/test-project/locations/test-region/sessionTemplates/test_template"
-        session_template_response.environment_config.execution_config.network_uri = (
-            "template_network_uri"
-        )
-        mock_session_template_controller_client_instance.get_session_template.return_value = (
-            session_template_response
-        )
+
         create_session_request = CreateSessionRequest()
-        create_session_request = CreateSessionRequest.wrap(
-            text_format.Parse(
-                """
-        parent: "projects/test-project/locations/test-region"
-        session {
-          name: "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
-          runtime_config {
-            version: "_DEFAULT_RUNTIME_VERSION_"
-          }
-          environment_config {
-            execution_config {
-              ttl {
-                seconds: 10
-              }
-            }
-          }
-          spark_connect_session {
-          }
-          session_template: "projects/test-project/locations/test-region/sessionTemplates/test_template"
-        }
-        session_id: "sc-20240702-103952-abcdef"
-        """.replace(
-                    "_DEFAULT_RUNTIME_VERSION_", self._default_runtime_version
-                ),
-                CreateSessionRequest.pb(create_session_request),
-            )
+        create_session_request.parent = (
+            "projects/test-project/locations/test-region"
         )
+        create_session_request.session.environment_config.execution_config.ttl = {
+            "seconds": 10
+        }
+        create_session_request.session.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+        create_session_request.session.runtime_config.version = (
+            self._default_runtime_version
+        )
+        create_session_request.session.spark_connect_session = (
+            SparkConnectConfig()
+        )
+        create_session_request.session.session_template = "projects/test-project/locations/test-region/sessionTemplates/test_template"
+        create_session_request.session_id = "sc-20240702-103952-abcdef"
+
         try:
             dataproc_config = Session()
             dataproc_config.environment_config.execution_config.ttl = {
@@ -516,50 +539,6 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
             mock_session_controller_client_instance.get_session.assert_called_once_with(
                 get_session_request
             )
-
-    def test_create_spark_session_with_incorrect_dataproc_config_file_path(
-        self,
-    ):
-        with self.assertRaises(FileNotFoundError) as e:
-            with mock.patch.dict(
-                "os.environ",
-                {
-                    "DATAPROC_SPARK_CONNECT_SESSION_DEFAULT_CONFIG": self._resources_dir
-                    + "/session1.textproto",
-                },
-            ):
-                DataprocSparkSession.builder.getOrCreate()
-        self.assertEqual(
-            e.exception.args[0],
-            f"File '{self._resources_dir}/session1.textproto' not found",
-        )
-
-    def test_create_spark_session_with_invalid_dataproc_config_file(self):
-        with self.assertRaises(ParseError):
-            with mock.patch.dict(
-                "os.environ",
-                {
-                    "DATAPROC_SPARK_CONNECT_SESSION_DEFAULT_CONFIG": self._resources_dir
-                    + "/parse_error.textproto",
-                },
-            ):
-                DataprocSparkSession.builder.getOrCreate()
-
-    def test_create_spark_session_unsupported_dataproc_config_version(self):
-        with self.assertRaises(ValueError) as e:
-            with mock.patch.dict(
-                "os.environ",
-                {
-                    "DATAPROC_SPARK_CONNECT_SESSION_DEFAULT_CONFIG": self._resources_dir
-                    + "/unsupported_version.textproto",
-                },
-            ):
-                DataprocSparkSession.builder.getOrCreate()
-        self.assertTrue(
-            e.exception.args[0].startswith(
-                "runtime_config.version 2.1 is not supported"
-            )
-        )
 
     @mock.patch("google.auth.default")
     @mock.patch("google.cloud.dataproc_v1.SessionControllerClient")
@@ -591,7 +570,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
                 Session()
             ).getOrCreate()
         self.assertEqual(
-            e.exception.args[0], "Error while creating Dataproc Session"
+            "Error while creating Dataproc Session", e.exception.args[0]
         )
 
     @mock.patch("google.auth.default")
