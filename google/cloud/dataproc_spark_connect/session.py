@@ -19,7 +19,9 @@ import logging
 import os
 import random
 import string
+import threading
 import time
+import tqdm
 
 from google.api_core import retry
 from google.api_core.client_options import ClientOptions
@@ -37,7 +39,6 @@ from google.cloud.dataproc_v1 import (
     TerminateSessionRequest,
 )
 from google.cloud.dataproc_v1.types import sessions
-from google.protobuf.duration_pb2 import Duration
 from pyspark.sql.connect.session import SparkSession
 from pyspark.sql.utils import to_str
 from typing import Any, cast, ClassVar, Dict, Optional
@@ -205,11 +206,36 @@ class DataprocSparkSession(SparkSession):
                 logger.debug("Creating Dataproc Session")
                 DataprocSparkSession._active_s8s_session_id = session_id
                 s8s_creation_start_time = time.time()
-                os.environ["SPARK_CONNECT_MODE_ENABLED"] = "1"
-                try:
-                    print(
-                        "Creating Dataproc Session. It may take a few minutes."
+
+                stop_create_session_pbar = False
+
+                def create_session_pbar():
+                    iterations = 150
+                    pbar = tqdm.trange(
+                        iterations,
+                        bar_format="{bar}",
+                        ncols=80,
                     )
+                    for i in pbar:
+                        if stop_create_session_pbar:
+                            break
+                        # Last iteration
+                        if i >= iterations - 1:
+                            # Sleep until session created
+                            while not stop_create_session_pbar:
+                                time.sleep(1)
+                        else:
+                            time.sleep(1)
+
+                    pbar.close()
+                    # Print new line after the progress bar
+                    print()
+
+                create_session_pbar_thread = threading.Thread(
+                    target=create_session_pbar
+                )
+
+                try:
                     if (
                         os.getenv(
                             "DATAPROC_SPARK_CONNECT_SESSION_TERMINATE_AT_EXIT",
@@ -229,8 +255,9 @@ class DataprocSparkSession(SparkSession):
                         client_options=self._client_options
                     ).create_session(session_request)
                     print(
-                        f"Dataproc Session Detail View: https://console.cloud.google.com/dataproc/interactive/{self._region}/{session_id}?project={self._project_id}"
+                        f"Creating Dataproc Session: https://console.cloud.google.com/dataproc/interactive/{self._region}/{session_id}?project={self._project_id}"
                     )
+                    create_session_pbar_thread.start()
                     session_response: Session = operation.result(
                         polling=retry.Retry(
                             predicate=POLLING_PREDICATE,
@@ -240,6 +267,9 @@ class DataprocSparkSession(SparkSession):
                             timeout=600,  # seconds
                         )
                     )
+                    stop_create_session_pbar = True
+                    create_session_pbar_thread.join()
+                    print("Dataproc Session was successfully created")
                     file_path = (
                         DataprocSparkSession._get_active_session_file_path()
                     )
@@ -259,11 +289,17 @@ class DataprocSparkSession(SparkSession):
                                 f"Exception while writing active session to file {file_path}, {e}"
                             )
                 except (InvalidArgument, PermissionDenied) as e:
+                    stop_create_session_pbar = True
+                    if create_session_pbar_thread.is_alive():
+                        create_session_pbar_thread.join()
                     DataprocSparkSession._active_s8s_session_id = None
                     raise DataprocSparkConnectException(
                         f"Error while creating Dataproc Session: {e.message}"
                     )
                 except Exception as e:
+                    stop_create_session_pbar = True
+                    if create_session_pbar_thread.is_alive():
+                        create_session_pbar_thread.join()
                     DataprocSparkSession._active_s8s_session_id = None
                     raise RuntimeError(
                         f"Error while creating Dataproc Session"
@@ -390,23 +426,25 @@ class DataprocSparkSession(SparkSession):
                 not in self._dataproc_runtime_to_spark_version
             ):
                 raise ValueError(
-                    f"Specified {version} runtime version is not supported. "
-                    f"Supported versions: {self._dataproc_runtime_to_spark_version.keys()}"
+                    f"Specified {version} Dataproc Spark runtime version is not supported. "
+                    f"Supported runtime versions: {self._dataproc_runtime_to_spark_version.keys()}"
                 )
 
             server_version = self._dataproc_runtime_to_spark_version[
                 trim_version(version)
             ]
+
             import importlib.metadata
 
-            google_connect_version = importlib.metadata.version(
+            dataproc_connect_version = importlib.metadata.version(
                 "dataproc-spark-connect"
             )
             client_version = importlib.metadata.version("pyspark")
-            version_message = f"Spark Connect: {google_connect_version} (PySpark: {client_version}) Session Runtime: {version} (Spark: {server_version})"
             if trim_version(client_version) != trim_version(server_version):
-                logger.warning(
-                    f"Client and server use different versions: {version_message}"
+                print(
+                    f"Spark Connect client and server use different versions:\n"
+                    f"- Dataproc Spark Connect client {dataproc_connect_version} (PySpark {client_version})\n"
+                    f"- Dataproc Spark runtime {version} (Spark {server_version})"
                 )
 
         @staticmethod
