@@ -432,6 +432,10 @@ class DataprocSparkSession(SparkSession):
                         f"DATAPROC_SPARK_CONNECT_DEFAULT_DATASOURCE is set to an invalid value:"
                         f" {default_datasource}. Supported value is 'bigquery'."
                     )
+            if "COLAB_NOTEBOOK_ID" in os.environ:
+                dataproc_config.labels["colab-notebook-id"] = (
+                    os.environ["COLAB_NOTEBOOK_ID"]
+                )
             return dataproc_config
 
         @staticmethod
