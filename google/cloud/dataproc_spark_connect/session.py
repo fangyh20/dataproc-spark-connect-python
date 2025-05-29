@@ -150,16 +150,16 @@ class DataprocSparkSession(SparkSession):
         def __create_spark_connect_session_from_s8s(
             self, session_response, session_name
         ) -> "DataprocSparkSession":
-            DataprocSparkSession._active_s8s_session_uuid = session_response.uuid
+            DataprocSparkSession._active_s8s_session_uuid = (
+                session_response.uuid
+            )
             DataprocSparkSession._project_id = self._project_id
             DataprocSparkSession._region = self._region
             DataprocSparkSession._client_options = self._client_options
             spark_connect_url = session_response.runtime_info.endpoints.get(
                 "Spark Connect Server"
             )
-            url = (
-                f"{spark_connect_url}/;session_id={session_response.uuid};use_ssl=true"
-            )
+            url = f"{spark_connect_url}/;session_id={session_response.uuid};use_ssl=true"
             logger.debug(f"Spark Connect URL: {url}")
             self._channel_builder = DataprocChannelBuilder(
                 url,
@@ -189,7 +189,9 @@ class DataprocSparkSession(SparkSession):
 
                 session_id = self.generate_dataproc_session_id()
                 dataproc_config.name = f"projects/{self._project_id}/locations/{self._region}/sessions/{session_id}"
-                logger.debug(f"Dataproc Session configuration:\n{dataproc_config}")
+                logger.debug(
+                    f"Dataproc Session configuration:\n{dataproc_config}"
+                )
 
                 session_request = CreateSessionRequest()
                 session_request.session_id = session_id
@@ -265,14 +267,18 @@ class DataprocSparkSession(SparkSession):
                     stop_create_session_pbar_event.set()
                     create_session_pbar_thread.join()
                     print("Dataproc Session was successfully created")
-                    file_path = DataprocSparkSession._get_active_session_file_path()
+                    file_path = (
+                        DataprocSparkSession._get_active_session_file_path()
+                    )
                     if file_path is not None:
                         try:
                             session_data = {
                                 "session_name": session_response.name,
                                 "session_uuid": session_response.uuid,
                             }
-                            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                            os.makedirs(
+                                os.path.dirname(file_path), exist_ok=True
+                            )
                             with open(file_path, "w") as json_file:
                                 json.dump(session_data, json_file, indent=4)
                         except Exception as e:
@@ -292,7 +298,9 @@ class DataprocSparkSession(SparkSession):
                     if create_session_pbar_thread.is_alive():
                         create_session_pbar_thread.join()
                     DataprocSparkSession._active_s8s_session_id = None
-                    raise RuntimeError(f"Error while creating Dataproc Session") from e
+                    raise RuntimeError(
+                        f"Error while creating Dataproc Session"
+                    ) from e
                 finally:
                     stop_create_session_pbar_event.set()
 
@@ -352,7 +360,9 @@ class DataprocSparkSession(SparkSession):
                 dataproc_config = self._dataproc_config
                 for k, v in self._options.items():
                     dataproc_config.runtime_config.properties[k] = v
-            dataproc_config.spark_connect_session = sessions.SparkConnectConfig()
+            dataproc_config.spark_connect_session = (
+                sessions.SparkConnectConfig()
+            )
             if not dataproc_config.runtime_config.version:
                 dataproc_config.runtime_config.version = (
                     DataprocSparkSession._DEFAULT_RUNTIME_VERSION
@@ -368,40 +378,49 @@ class DataprocSparkSession(SparkSession):
                 not dataproc_config.environment_config.execution_config.service_account
                 and "DATAPROC_SPARK_CONNECT_SERVICE_ACCOUNT" in os.environ
             ):
-                dataproc_config.environment_config.execution_config.service_account = (
-                    os.getenv("DATAPROC_SPARK_CONNECT_SERVICE_ACCOUNT")
+                dataproc_config.environment_config.execution_config.service_account = os.getenv(
+                    "DATAPROC_SPARK_CONNECT_SERVICE_ACCOUNT"
                 )
             if (
                 not dataproc_config.environment_config.execution_config.subnetwork_uri
                 and "DATAPROC_SPARK_CONNECT_SUBNET" in os.environ
             ):
-                dataproc_config.environment_config.execution_config.subnetwork_uri = (
-                    os.getenv("DATAPROC_SPARK_CONNECT_SUBNET")
+                dataproc_config.environment_config.execution_config.subnetwork_uri = os.getenv(
+                    "DATAPROC_SPARK_CONNECT_SUBNET"
                 )
             if (
                 not dataproc_config.environment_config.execution_config.ttl
                 and "DATAPROC_SPARK_CONNECT_TTL_SECONDS" in os.environ
             ):
                 dataproc_config.environment_config.execution_config.ttl = {
-                    "seconds": int(os.getenv("DATAPROC_SPARK_CONNECT_TTL_SECONDS"))
+                    "seconds": int(
+                        os.getenv("DATAPROC_SPARK_CONNECT_TTL_SECONDS")
+                    )
                 }
             if (
                 not dataproc_config.environment_config.execution_config.idle_ttl
                 and "DATAPROC_SPARK_CONNECT_IDLE_TTL_SECONDS" in os.environ
             ):
                 dataproc_config.environment_config.execution_config.idle_ttl = {
-                    "seconds": int(os.getenv("DATAPROC_SPARK_CONNECT_IDLE_TTL_SECONDS"))
+                    "seconds": int(
+                        os.getenv("DATAPROC_SPARK_CONNECT_IDLE_TTL_SECONDS")
+                    )
                 }
             if "COLAB_NOTEBOOK_RUNTIME_ID" in os.environ:
-                dataproc_config.labels["colab-notebook-runtime-id"] = os.environ[
-                    "COLAB_NOTEBOOK_RUNTIME_ID"
-                ]
+                dataproc_config.labels["colab-notebook-runtime-id"] = (
+                    os.environ["COLAB_NOTEBOOK_RUNTIME_ID"]
+                )
             if "COLAB_NOTEBOOK_KERNEL_ID" in os.environ:
                 dataproc_config.labels["colab-notebook-kernel-id"] = os.environ[
                     "COLAB_NOTEBOOK_KERNEL_ID"
                 ]
-            default_datasource = os.getenv("DATAPROC_SPARK_CONNECT_DEFAULT_DATASOURCE")
-            if default_datasource and dataproc_config.runtime_config.version == "2.3":
+            default_datasource = os.getenv(
+                "DATAPROC_SPARK_CONNECT_DEFAULT_DATASOURCE"
+            )
+            if (
+                default_datasource
+                and dataproc_config.runtime_config.version == "2.3"
+            ):
                 if default_datasource == "bigquery":
                     bq_datasource_properties = {
                         "spark.datasource.bigquery.viewsEnabled": "true",
@@ -430,7 +449,9 @@ class DataprocSparkSession(SparkSession):
             timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             suffix_length = 6
             random_suffix = "".join(
-                random.choices(string.ascii_lowercase + string.digits, k=suffix_length)
+                random.choices(
+                    string.ascii_lowercase + string.digits, k=suffix_length
+                )
             )
             return f"sc-{timestamp}-{random_suffix}"
 
@@ -514,7 +535,9 @@ class DataprocSparkSession(SparkSession):
                 file=True,
             )
         else:
-            super().addArtifacts(*artifact, pyfile=pyfile, archive=archive, file=file)
+            super().addArtifacts(
+                *artifact, pyfile=pyfile, archive=archive, file=file
+            )
 
     @staticmethod
     def _get_active_session_file_path():
@@ -540,7 +563,9 @@ class DataprocSparkSession(SparkSession):
             self.client.close()
             if self is DataprocSparkSession._default_session:
                 DataprocSparkSession._default_session = None
-            if self is getattr(DataprocSparkSession._active_session, "session", None):
+            if self is getattr(
+                DataprocSparkSession._active_session, "session", None
+            ):
                 DataprocSparkSession._active_session.session = None
 
 
@@ -551,9 +576,7 @@ def terminate_s8s_session(
 
     logger.debug(f"Terminating Dataproc Session: {active_s8s_session_id}")
     terminate_session_request = TerminateSessionRequest()
-    session_name = (
-        f"projects/{project_id}/locations/{region}/sessions/{active_s8s_session_id}"
-    )
+    session_name = f"projects/{project_id}/locations/{region}/sessions/{active_s8s_session_id}"
     terminate_session_request.name = session_name
     state = None
     try:
@@ -571,7 +594,9 @@ def terminate_s8s_session(
             state = session.state
             time.sleep(1)
     except NotFound:
-        logger.debug(f"{active_s8s_session_id} Dataproc Session already deleted")
+        logger.debug(
+            f"{active_s8s_session_id} Dataproc Session already deleted"
+        )
     # Client will get 'Aborted' error if session creation is still in progress and
     # 'FailedPrecondition' if another termination is still in progress.
     # Both are retryable, but we catch it and let TTL take care of cleanups.
