@@ -406,13 +406,9 @@ class DataprocSparkSession(SparkSession):
                         os.getenv("DATAPROC_SPARK_CONNECT_IDLE_TTL_SECONDS")
                     )
                 }
-            if "COLAB_NOTEBOOK_RUNTIME_ID" in os.environ:
-                dataproc_config.labels["colab-notebook-runtime-id"] = (
-                    os.environ["COLAB_NOTEBOOK_RUNTIME_ID"]
-                )
-            if "COLAB_NOTEBOOK_KERNEL_ID" in os.environ:
-                dataproc_config.labels["colab-notebook-kernel-id"] = os.environ[
-                    "COLAB_NOTEBOOK_KERNEL_ID"
+            if "COLAB_NOTEBOOK_ID" in os.environ:
+                dataproc_config.labels["colab-notebook-id"] = os.environ[
+                    "COLAB_NOTEBOOK_ID"
                 ]
             default_datasource = os.getenv(
                 "DATAPROC_SPARK_CONNECT_DEFAULT_DATASOURCE"
@@ -438,10 +434,6 @@ class DataprocSparkSession(SparkSession):
                         f"DATAPROC_SPARK_CONNECT_DEFAULT_DATASOURCE is set to an invalid value:"
                         f" {default_datasource}. Supported value is 'bigquery'."
                     )
-            if "COLAB_NOTEBOOK_ID" in os.environ:
-                dataproc_config.labels["colab-notebook-id"] = os.environ[
-                    "COLAB_NOTEBOOK_ID"
-                ]
             return dataproc_config
 
         @staticmethod
