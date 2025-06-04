@@ -106,15 +106,6 @@ class DataprocSparkSession(SparkSession):
                 )
             )
 
-        def __apply_options(self, session: "SparkSession") -> None:
-            with self._lock:
-                self._options = {
-                    key: value
-                    for key, value in self._options.items()
-                    if key not in self._session_static_configs
-                }
-                self._apply_options(session)
-
         def projectId(self, project_id):
             self._project_id = project_id
             return self
@@ -172,7 +163,6 @@ class DataprocSparkSession(SparkSession):
             session = DataprocSparkSession(connection=self._channel_builder)
 
             DataprocSparkSession._set_default_and_active_session(session)
-            self.__apply_options(session)
             return session
 
         def __create(self) -> "DataprocSparkSession":
@@ -350,8 +340,6 @@ class DataprocSparkSession(SparkSession):
                 session = self._get_exiting_active_session()
                 if session is None:
                     session = self.__create()
-                if session:
-                    self.__apply_options(session)
                 return session
 
         def _get_dataproc_config(self):
