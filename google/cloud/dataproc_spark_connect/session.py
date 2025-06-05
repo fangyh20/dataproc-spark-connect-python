@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import random
+import re
 import string
 import threading
 import time
@@ -408,10 +409,21 @@ class DataprocSparkSession(SparkSession):
                 }
             if "COLAB_NOTEBOOK_ID" in os.environ:
                 colab_notebook_id_full = os.environ["COLAB_NOTEBOOK_ID"]
-                # Extract the last part of the path, which is the ID
-                dataproc_config.labels["colab-notebook-id"] = os.path.basename(
-                    colab_notebook_id_full
+                # Expected format: /embedded/projects/proj-id/locations/us-central1/repositories/notebook-id
+                match = re.search(
+                    r"/projects/(?P<project>[^/]+)/locations/(?P<location>[^/]+)/repositories/(?P<id>[^/]+)",
+                    colab_notebook_id_full,
                 )
+                if match:
+                    gd = match.groupdict()
+                    if "project" in gd and "location" in gd and "id" in gd:
+                        dataproc_config.labels[
+                            "colab-notebook-project-id"
+                        ] = gd["project"]
+                        dataproc_config.labels[
+                            "colab-notebook-location"
+                        ] = gd["location"]
+                        dataproc_config.labels["colab-notebook-id"] = gd["id"]
             default_datasource = os.getenv(
                 "DATAPROC_SPARK_CONNECT_DEFAULT_DATASOURCE"
             )

@@ -326,7 +326,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
                 "DATAPROC_SPARK_CONNECT_SUBNET": "test-subnet-from-env",
                 "DATAPROC_SPARK_CONNECT_TTL_SECONDS": "12",
                 "DATAPROC_SPARK_CONNECT_IDLE_TTL_SECONDS": "89",
-                "COLAB_NOTEBOOK_ID": "/embedded/projects/google.com%3Ahadoop-cloud-dev/locations/us-central1/repositories/test-notebook-id",
+                "COLAB_NOTEBOOK_ID": "/embedded/projects/proj-id/locations/us-central1/repositories/d2943429-2624-4e20-9c15-d9b649471342",
             },
         ).start()
 
@@ -346,9 +346,15 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         create_session_request.session.environment_config.execution_config.idle_ttl = {
             "seconds": 89
         }
-        create_session_request.session.labels["colab-notebook-id"] = (
-            "test-notebook-id"  # Expecting the basename
-        )
+        create_session_request.session.labels[
+            "colab-notebook-project-id"
+        ] = "proj-id"
+        create_session_request.session.labels[
+            "colab-notebook-location"
+        ] = "us-central1"
+        create_session_request.session.labels[
+            "colab-notebook-id"
+        ] = "d2943429-2624-4e20-9c15-d9b649471342"
         create_session_request.parent = (
             "projects/test-project/locations/test-region"
         )
@@ -365,6 +371,94 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
             session = DataprocSparkSession.builder.getOrCreate()
             mock_session_controller_client_instance.create_session.assert_called_once_with(
                 create_session_request
+            )
+        finally:
+            mock_session_controller_client_instance.terminate_session.return_value = (
+                mock.Mock()
+            )
+            self.stopSession(mock_session_controller_client_instance, session)
+            terminate_session_request = TerminateSessionRequest()
+            terminate_session_request.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+            get_session_request = GetSessionRequest()
+            get_session_request.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+            mock_session_controller_client_instance.terminate_session.assert_called_once_with(
+                terminate_session_request
+            )
+            mock_session_controller_client_instance.get_session.assert_called_once_with(
+                get_session_request
+            )
+
+    @mock.patch("google.auth.default")
+    @mock.patch("google.cloud.dataproc_v1.SessionControllerClient")
+    @mock.patch(
+        "google.cloud.dataproc_spark_connect.DataprocSparkSession.Builder.generate_dataproc_session_id"
+    )
+    @mock.patch(
+        "google.cloud.dataproc_spark_connect.session.is_s8s_session_active"
+    )
+    def test_create_session_with_invalid_colab_env_var(
+        self,
+        mock_is_s8s_session_active,
+        mock_dataproc_session_id,
+        mock_session_controller_client,
+        mock_credentials,
+    ):
+        session = None
+        mock_is_s8s_session_active.return_value = True
+        mock_session_controller_client_instance = (
+            mock_session_controller_client.return_value
+        )
+        mock_dataproc_session_id.return_value = "sc-20240702-103952-abcdef"
+        cred = mock.MagicMock()
+        cred.token = "token"
+        mock_credentials.return_value = (cred, "")
+        mock_operation = mock.Mock()
+        session_response = Session()
+        session_response.runtime_info.endpoints = {
+            "Spark Connect Server": "sc://spark-connect-server.example.com:443"
+        }
+        session_response.uuid = "c002e4ef-fe5e-41a8-a157-160aa73e4f7f"
+        mock_operation.result.side_effect = [session_response]
+        mock_session_controller_client_instance.create_session.return_value = (
+            mock_operation
+        )
+
+        mock.patch.dict(
+            os.environ,
+            {
+                "COLAB_NOTEBOOK_ID": "invalid-format",
+            },
+        ).start()
+
+        create_session_request = CreateSessionRequest()
+        create_session_request.parent = (
+            "projects/test-project/locations/test-region"
+        )
+        create_session_request.session.name = "projects/test-project/locations/test-region/sessions/sc-20240702-103952-abcdef"
+        create_session_request.session.runtime_config.version = (
+            self._default_runtime_version
+        )
+        create_session_request.session.spark_connect_session = (
+            SparkConnectConfig()
+        )
+        create_session_request.session_id = "sc-20240702-103952-abcdef"
+
+        try:
+            session = DataprocSparkSession.builder.getOrCreate()
+            mock_session_controller_client_instance.create_session.assert_called_once_with(
+                create_session_request
+            )
+            # Ensure no colab labels were added
+            self.assertNotIn(
+                "colab-notebook-project-id",
+                create_session_request.session.labels,
+            )
+            self.assertNotIn(
+                "colab-notebook-location",
+                create_session_request.session.labels,
+            )
+            self.assertNotIn(
+                "colab-notebook-id", create_session_request.session.labels
             )
         finally:
             mock_session_controller_client_instance.terminate_session.return_value = (

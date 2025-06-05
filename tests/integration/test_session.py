@@ -14,6 +14,7 @@
 import datetime
 import os
 import pytest
+import re
 import uuid
 
 from google.api_core import client_options
@@ -120,6 +121,22 @@ def test_create_spark_session_with_default_notebook_behavior(
     get_session_request.name = session_name
     session = session_controller_client.get_session(get_session_request)
     assert session.state == Session.State.ACTIVE
+
+    if "COLAB_NOTEBOOK_ID" in os.environ:
+        colab_notebook_id_full = os.environ["COLAB_NOTEBOOK_ID"]
+        # Expected format: /embedded/projects/proj-id/locations/us-central1/repositories/notebook-id
+        match = re.search(
+            r"/projects/(?P<project>[^/]+)/locations/(?P<location>[^/]+)/repositories/(?P<id>[^/]+)",
+            colab_notebook_id_full,
+        )
+        if match:
+            gd = match.groupdict()
+            assert "colab-notebook-project-id" in session.labels
+            assert "colab-notebook-location" in session.labels
+            assert "colab-notebook-id" in session.labels
+            assert session.labels["colab-notebook-project-id"] == gd["project"]
+            assert session.labels["colab-notebook-location"] == gd["location"]
+            assert session.labels["colab-notebook-id"] == gd["id"]
 
     df = connect_session.createDataFrame([(1, "Sarah"), (2, "Maria")]).toDF(
         "id", "name"
