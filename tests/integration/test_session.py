@@ -16,6 +16,7 @@ import os
 import pytest
 import re
 import uuid
+from urllib.parse import unquote
 
 from google.api_core import client_options
 from google.cloud.dataproc_spark_connect import DataprocSparkSession
@@ -131,7 +132,8 @@ def test_create_spark_session_with_default_notebook_behavior(
         )
         if match:
             gd = match.groupdict()
-            project_id_parts = gd["project"].split(":")
+            project_id = unquote(gd["project"])
+            project_id_parts = project_id.split(":")
             if len(project_id_parts) > 1:
                 assert "colab-notebook-has-project-prefix" in session.labels
                 assert (

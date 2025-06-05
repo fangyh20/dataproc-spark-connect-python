@@ -326,7 +326,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
                 "DATAPROC_SPARK_CONNECT_SUBNET": "test-subnet-from-env",
                 "DATAPROC_SPARK_CONNECT_TTL_SECONDS": "12",
                 "DATAPROC_SPARK_CONNECT_IDLE_TTL_SECONDS": "89",
-                "COLAB_NOTEBOOK_ID": "/embedded/projects/company.com:proj-id/locations/us-central1/repositories/d2943429-2624-4e20-9c15-d9b649471342",
+                "COLAB_NOTEBOOK_ID": "/embedded/projects/google.com%3Aproj-id/locations/us-central1/repositories/d2943429-2624-4e20-9c15-d9b649471342",
             },
         ).start()
 

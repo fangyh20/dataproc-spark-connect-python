@@ -23,6 +23,7 @@ import string
 import threading
 import time
 import tqdm
+from urllib.parse import unquote
 
 from google.api_core import retry
 from google.api_core.client_options import ClientOptions
@@ -417,7 +418,8 @@ class DataprocSparkSession(SparkSession):
                 if match:
                     gd = match.groupdict()
                     if "project" in gd and "location" in gd and "id" in gd:
-                        project_id_parts = gd["project"].split(":")
+                        project_id = unquote(gd["project"])
+                        project_id_parts = project_id.split(":")
                         # Org:Project is a special case for internal only and the Org value is fixed
                         if len(project_id_parts) > 1:
                             dataproc_config.labels[
