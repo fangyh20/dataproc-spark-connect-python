@@ -131,12 +131,18 @@ def test_create_spark_session_with_default_notebook_behavior(
         )
         if match:
             gd = match.groupdict()
+            project_id_parts = gd["project"].split(":")
+            if len(project_id_parts) > 1:
+                assert "colab-notebook-has-project-prefix" in session.labels
+                assert (
+                    session.labels["colab-notebook-has-project-prefix"] == "true"
+                )
             assert "colab-notebook-project-id" in session.labels
             assert "colab-notebook-location" in session.labels
             assert "colab-notebook-id" in session.labels
             assert (
                 session.labels["colab-notebook-project-id"]
-                == gd["project"].split(":")[-1]
+                == project_id_parts[-1]
             )
             assert session.labels["colab-notebook-location"] == gd["location"]
             assert session.labels["colab-notebook-id"] == gd["id"]

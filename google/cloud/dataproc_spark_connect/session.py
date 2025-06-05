@@ -417,9 +417,14 @@ class DataprocSparkSession(SparkSession):
                 if match:
                     gd = match.groupdict()
                     if "project" in gd and "location" in gd and "id" in gd:
-                        # Org:Project is a special case for internal only. Removing prefix to make the label valid
+                        project_id_parts = gd["project"].split(":")
+                        # Org:Project is a special case for internal only and the Org value is fixed
+                        if len(project_id_parts) > 1:
+                            dataproc_config.labels[
+                                "colab-notebook-has-project-prefix"
+                            ] = "true"
                         dataproc_config.labels["colab-notebook-project-id"] = (
-                            gd["project"].split(":")[-1]
+                            project_id_parts[-1]
                         )
                         dataproc_config.labels["colab-notebook-location"] = gd[
                             "location"
