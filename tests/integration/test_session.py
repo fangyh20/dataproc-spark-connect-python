@@ -135,7 +135,8 @@ def test_create_spark_session_with_default_notebook_behavior(
             if len(project_id_parts) > 1:
                 assert "colab-notebook-has-project-prefix" in session.labels
                 assert (
-                    session.labels["colab-notebook-has-project-prefix"] == "true"
+                    session.labels["colab-notebook-has-project-prefix"]
+                    == "true"
                 )
             assert "colab-notebook-project-id" in session.labels
             assert "colab-notebook-location" in session.labels
