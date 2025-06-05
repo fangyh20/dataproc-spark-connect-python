@@ -385,9 +385,9 @@ class DataprocSparkSession(SparkSession):
                     )
                 }
             if "COLAB_NOTEBOOK_ID" in os.environ:
-                dataproc_config.labels["colab-notebook-id"] = os.environ[
-                    "COLAB_NOTEBOOK_ID"
-                ]
+                dataproc_config.runtime_config.properties[
+                    "colab_notebook_id"
+                ] = os.environ["COLAB_NOTEBOOK_ID"]
             default_datasource = os.getenv(
                 "DATAPROC_SPARK_CONNECT_DEFAULT_DATASOURCE"
             )

@@ -146,6 +146,23 @@ def test_create_spark_session_with_default_notebook_behavior(
     assert DataprocSparkSession._active_s8s_session_uuid is None
 
 
+def test_create_spark_session_with_colab_notebook_id(
+    connect_session, session_name, session_controller_client
+):
+    os.environ["COLAB_NOTEBOOK_ID"] = (
+        "/embedded/projects/company.com%3Aprojectid/locations/us-central1/repositories/d2943429-2624-4e20-9c15-d9b649471342"
+    )
+    get_session_request = GetSessionRequest()
+    get_session_request.name = session_name
+    session = session_controller_client.get_session(get_session_request)
+    assert session.state == Session.State.ACTIVE
+    assert (
+        session.runtime_config.properties["colab_notebook_id"]
+        == "/embedded/projects/company.com%3Aprojectid/locations/us-central1/repositories/d2943429-2624-4e20-9c15-d9b649471342"
+    )
+    connect_session.stop()
+
+
 def test_reuse_s8s_spark_session(
     connect_session, session_name, session_controller_client
 ):
