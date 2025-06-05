@@ -326,7 +326,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
                 "DATAPROC_SPARK_CONNECT_SUBNET": "test-subnet-from-env",
                 "DATAPROC_SPARK_CONNECT_TTL_SECONDS": "12",
                 "DATAPROC_SPARK_CONNECT_IDLE_TTL_SECONDS": "89",
-                "COLAB_NOTEBOOK_ID": "/embedded/projects/proj-id/locations/us-central1/repositories/d2943429-2624-4e20-9c15-d9b649471342",
+                "COLAB_NOTEBOOK_ID": "/embedded/projects/google.com:proj-id/locations/us-central1/repositories/d2943429-2624-4e20-9c15-d9b649471342",
             },
         ).start()
 
@@ -346,15 +346,15 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         create_session_request.session.environment_config.execution_config.idle_ttl = {
             "seconds": 89
         }
-        create_session_request.session.labels[
-            "colab-notebook-project-id"
-        ] = "proj-id"
-        create_session_request.session.labels[
-            "colab-notebook-location"
-        ] = "us-central1"
-        create_session_request.session.labels[
-            "colab-notebook-id"
-        ] = "d2943429-2624-4e20-9c15-d9b649471342"
+        create_session_request.session.labels["colab-notebook-project-id"] = (
+            "proj-id"
+        )
+        create_session_request.session.labels["colab-notebook-location"] = (
+            "us-central1"
+        )
+        create_session_request.session.labels["colab-notebook-id"] = (
+            "d2943429-2624-4e20-9c15-d9b649471342"
+        )
         create_session_request.parent = (
             "projects/test-project/locations/test-region"
         )

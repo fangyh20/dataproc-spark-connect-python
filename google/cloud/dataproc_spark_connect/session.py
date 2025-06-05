@@ -417,12 +417,13 @@ class DataprocSparkSession(SparkSession):
                 if match:
                     gd = match.groupdict()
                     if "project" in gd and "location" in gd and "id" in gd:
-                        dataproc_config.labels[
-                            "colab-notebook-project-id"
-                        ] = gd["project"]
-                        dataproc_config.labels[
-                            "colab-notebook-location"
-                        ] = gd["location"]
+                        # Org:Project is a special case for internal only. Removing prefix to make the label valid
+                        dataproc_config.labels["colab-notebook-project-id"] = (
+                            gd["project"].split(":")[-1]
+                        )
+                        dataproc_config.labels["colab-notebook-location"] = gd[
+                            "location"
+                        ]
                         dataproc_config.labels["colab-notebook-id"] = gd["id"]
             default_datasource = os.getenv(
                 "DATAPROC_SPARK_CONNECT_DEFAULT_DATASOURCE"

@@ -134,7 +134,10 @@ def test_create_spark_session_with_default_notebook_behavior(
             assert "colab-notebook-project-id" in session.labels
             assert "colab-notebook-location" in session.labels
             assert "colab-notebook-id" in session.labels
-            assert session.labels["colab-notebook-project-id"] == gd["project"]
+            assert (
+                session.labels["colab-notebook-project-id"]
+                == gd["project"].split(":")[-1]
+            )
             assert session.labels["colab-notebook-location"] == gd["location"]
             assert session.labels["colab-notebook-id"] == gd["id"]
 
