@@ -83,16 +83,6 @@ class DataprocSparkSession(SparkSession):
 
     class Builder(SparkSession.Builder):
 
-        _session_static_configs = [
-            "spark.executor.cores",
-            "spark.executor.memoryOverhead",
-            "spark.executor.memory",
-            "spark.driver.memory",
-            "spark.driver.cores",
-            "spark.eventLog.dir",
-            "spark.history.fs.logDirectory",
-        ]
-
         def __init__(self):
             self._options: Dict[str, Any] = {}
             self._channel_builder: Optional[DataprocChannelBuilder] = None
