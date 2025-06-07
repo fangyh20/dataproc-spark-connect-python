@@ -326,7 +326,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
                 "DATAPROC_SPARK_CONNECT_SUBNET": "test-subnet-from-env",
                 "DATAPROC_SPARK_CONNECT_TTL_SECONDS": "12",
                 "DATAPROC_SPARK_CONNECT_IDLE_TTL_SECONDS": "89",
-                "COLAB_NOTEBOOK_ID": "test-notebook-id",
+                "COLAB_NOTEBOOK_ID": "/embedded/projects/company.com%3Aproject1/locations/us-central1/repositories/test-notebook-id",
             },
         ).start()
 
@@ -347,7 +347,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
             "seconds": 89
         }
         create_session_request.session.labels["colab-notebook-id"] = (
-            "test-notebook-id"
+            "test-notebook-id"  # Expecting the basename
         )
         create_session_request.parent = (
             "projects/test-project/locations/test-region"
