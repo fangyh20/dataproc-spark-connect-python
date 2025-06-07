@@ -346,7 +346,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         create_session_request.session.environment_config.execution_config.idle_ttl = {
             "seconds": 89
         }
-        create_session_request.session.labels["colab-notebook-id"] = (
+        create_session_request.session.labels["goog-colab-notebook-id"] = (
             "test-notebook-id"  # Expecting the basename
         )
         create_session_request.parent = (
