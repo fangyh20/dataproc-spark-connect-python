@@ -60,8 +60,13 @@ def _is_valid_label_value(value: str) -> bool:
     Validates if a string complies with Google Cloud label value format.
     Only lowercase letters, numbers, and dashes are allowed.
     The value must start with lowercase letter or number and end with a lowercase letter or number.
+    Maximum length is 63 characters.
     """
     if not value:
+        return False
+
+    # Check maximum length (63 characters for GCP label values)
+    if len(value) > 63:
         return False
 
     # Check if the value matches the pattern: starts and ends with alphanumeric,
@@ -415,6 +420,7 @@ class DataprocSparkSession(SparkSession):
                         f"Warning while processing notebook ID: Notebook ID '{notebook_id}' is not compliant with label value format. "
                         f"Only lowercase letters, numbers, and dashes are allowed. "
                         f"The value must start with lowercase letter or number and end with a lowercase letter or number. "
+                        f"Maximum length is 63 characters. "
                         f"Skipping notebook ID label."
                     )
             default_datasource = os.getenv(

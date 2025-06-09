@@ -1229,6 +1229,16 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         )  # Contains special char
         self.assertFalse(_is_valid_label_value("UPPERCASE"))  # All uppercase
         self.assertFalse(_is_valid_label_value("-"))  # Just a dash
+        
+        # Valid label value at maximum length (63 characters)
+        max_length_valid = "a" + "b" * 61 + "c"  # 63 characters: a + 61 b's + c
+        self.assertEqual(len(max_length_valid), 63)
+        self.assertTrue(_is_valid_label_value(max_length_valid))
+        
+        # Invalid label value - too long (64 characters)
+        too_long_invalid = "a" + "b" * 62 + "c"  # 64 characters: a + 62 b's + c
+        self.assertEqual(len(too_long_invalid), 64)
+        self.assertFalse(_is_valid_label_value(too_long_invalid))
 
     @mock.patch("google.auth.default")
     @mock.patch("google.cloud.dataproc_v1.SessionControllerClient")
@@ -1310,6 +1320,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
                 "Only lowercase letters, numbers, and dashes are allowed",
                 warning_call_args,
             )
+            self.assertIn("Maximum length is 63 characters", warning_call_args)
             self.assertIn("Skipping notebook ID label", warning_call_args)
 
         finally:
