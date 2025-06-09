@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import random
+import re
 import string
 import threading
 import time
@@ -52,6 +53,21 @@ from typing import Any, cast, ClassVar, Dict, Optional
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _is_valid_label_value(value: str) -> bool:
+    """
+    Validates if a string complies with Google Cloud label value format.
+    Only lowercase letters, numbers, and dashes are allowed.
+    The value must start with lowercase letter or number and end with a lowercase letter or number.
+    """
+    if not value:
+        return False
+    
+    # Check if the value matches the pattern: starts and ends with alphanumeric, 
+    # contains only lowercase letters, numbers, and dashes
+    pattern = r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+    return bool(re.match(pattern, value))
 
 
 class DataprocSparkSession(SparkSession):
@@ -389,9 +405,16 @@ class DataprocSparkSession(SparkSession):
             if "COLAB_NOTEBOOK_ID" in os.environ:
                 colab_notebook_name = os.environ["COLAB_NOTEBOOK_ID"]
                 # Extract the last part of the path, which is the ID
-                dataproc_config.labels["goog-colab-notebook-id"] = (
-                    os.path.basename(colab_notebook_name)
-                )
+                notebook_id = os.path.basename(colab_notebook_name)
+                if _is_valid_label_value(notebook_id):
+                    dataproc_config.labels["goog-colab-notebook-id"] = notebook_id
+                else:
+                    logger.warning(
+                        f"Warning while processing notebook ID: Notebook ID '{notebook_id}' is not compliant with label value format. "
+                        f"Only lowercase letters, numbers, and dashes are allowed. "
+                        f"The value must start with lowercase letter or number and end with a lowercase letter or number. "
+                        f"Skipping notebook ID label."
+                    )
             default_datasource = os.getenv(
                 "DATAPROC_SPARK_CONNECT_DEFAULT_DATASOURCE"
             )
