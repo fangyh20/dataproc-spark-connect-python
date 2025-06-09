@@ -1209,16 +1209,24 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         self.assertTrue(_is_valid_label_value("a1b2c3"))
         self.assertTrue(_is_valid_label_value("valid123"))
         self.assertTrue(_is_valid_label_value("123valid"))
-        
+
         # Invalid label values
         self.assertFalse(_is_valid_label_value(""))  # Empty string
-        self.assertFalse(_is_valid_label_value("Invalid-Capital"))  # Capital letters
+        self.assertFalse(
+            _is_valid_label_value("Invalid-Capital")
+        )  # Capital letters
         self.assertFalse(_is_valid_label_value("-invalid"))  # Starts with dash
         self.assertFalse(_is_valid_label_value("invalid-"))  # Ends with dash
-        self.assertFalse(_is_valid_label_value("invalid_underscore"))  # Contains underscore
+        self.assertFalse(
+            _is_valid_label_value("invalid_underscore")
+        )  # Contains underscore
         self.assertFalse(_is_valid_label_value("invalid.dot"))  # Contains dot
-        self.assertFalse(_is_valid_label_value("invalid spaces"))  # Contains spaces
-        self.assertFalse(_is_valid_label_value("invalid@symbol"))  # Contains special char
+        self.assertFalse(
+            _is_valid_label_value("invalid spaces")
+        )  # Contains spaces
+        self.assertFalse(
+            _is_valid_label_value("invalid@symbol")
+        )  # Contains special char
         self.assertFalse(_is_valid_label_value("UPPERCASE"))  # All uppercase
         self.assertFalse(_is_valid_label_value("-"))  # Just a dash
 
@@ -1230,9 +1238,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
     @mock.patch(
         "google.cloud.dataproc_spark_connect.session.is_s8s_session_active"
     )
-    @mock.patch(
-        "google.cloud.dataproc_spark_connect.session.logger"
-    )
+    @mock.patch("google.cloud.dataproc_spark_connect.session.logger")
     def test_create_session_with_invalid_notebook_id(
         self,
         mock_logger,
@@ -1291,12 +1297,21 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
             # Verify warning was logged
             mock_logger.warning.assert_called_once()
             warning_call_args = mock_logger.warning.call_args[0][0]
-            self.assertIn("Warning while processing notebook ID:", warning_call_args)
-            self.assertIn("Invalid_Notebook-ID_With.Special@Chars", warning_call_args)
-            self.assertIn("not compliant with label value format", warning_call_args)
-            self.assertIn("Only lowercase letters, numbers, and dashes are allowed", warning_call_args)
+            self.assertIn(
+                "Warning while processing notebook ID:", warning_call_args
+            )
+            self.assertIn(
+                "Invalid_Notebook-ID_With.Special@Chars", warning_call_args
+            )
+            self.assertIn(
+                "not compliant with label value format", warning_call_args
+            )
+            self.assertIn(
+                "Only lowercase letters, numbers, and dashes are allowed",
+                warning_call_args,
+            )
             self.assertIn("Skipping notebook ID label", warning_call_args)
-            
+
         finally:
             mock_session_controller_client_instance.terminate_session.return_value = (
                 mock.Mock()
@@ -1311,9 +1326,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
     @mock.patch(
         "google.cloud.dataproc_spark_connect.session.is_s8s_session_active"
     )
-    @mock.patch(
-        "google.cloud.dataproc_spark_connect.session.logger"
-    )
+    @mock.patch("google.cloud.dataproc_spark_connect.session.logger")
     def test_create_session_with_valid_notebook_id(
         self,
         mock_logger,
@@ -1374,7 +1387,7 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
             )
             # Verify no warning was logged
             mock_logger.warning.assert_not_called()
-            
+
         finally:
             mock_session_controller_client_instance.terminate_session.return_value = (
                 mock.Mock()

@@ -63,10 +63,10 @@ def _is_valid_label_value(value: str) -> bool:
     """
     if not value:
         return False
-    
-    # Check if the value matches the pattern: starts and ends with alphanumeric, 
+
+    # Check if the value matches the pattern: starts and ends with alphanumeric,
     # contains only lowercase letters, numbers, and dashes
-    pattern = r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+    pattern = r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
     return bool(re.match(pattern, value))
 
 
@@ -407,7 +407,9 @@ class DataprocSparkSession(SparkSession):
                 # Extract the last part of the path, which is the ID
                 notebook_id = os.path.basename(colab_notebook_name)
                 if _is_valid_label_value(notebook_id):
-                    dataproc_config.labels["goog-colab-notebook-id"] = notebook_id
+                    dataproc_config.labels["goog-colab-notebook-id"] = (
+                        notebook_id
+                    )
                 else:
                     logger.warning(
                         f"Warning while processing notebook ID: Notebook ID '{notebook_id}' is not compliant with label value format. "
