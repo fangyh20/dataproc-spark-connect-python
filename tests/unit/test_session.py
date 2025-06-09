@@ -1229,12 +1229,12 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         )  # Contains special char
         self.assertFalse(_is_valid_label_value("UPPERCASE"))  # All uppercase
         self.assertFalse(_is_valid_label_value("-"))  # Just a dash
-        
+
         # Valid label value at maximum length (63 characters)
         max_length_valid = "a" + "b" * 61 + "c"  # 63 characters: a + 61 b's + c
         self.assertEqual(len(max_length_valid), 63)
         self.assertTrue(_is_valid_label_value(max_length_valid))
-        
+
         # Invalid label value - too long (64 characters)
         too_long_invalid = "a" + "b" * 62 + "c"  # 64 characters: a + 62 b's + c
         self.assertEqual(len(too_long_invalid), 64)
