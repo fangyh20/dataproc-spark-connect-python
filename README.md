@@ -11,6 +11,12 @@ requiring additional steps.
 pip install dataproc_spark_connect
 ```
 
+## Requirements
+
+This library supports:
+- **Python**: 3.10 or higher
+- **PySpark**: 3.5.1 or higher
+
 ## Uninstall
 
 ```sh

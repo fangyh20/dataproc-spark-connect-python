@@ -15,7 +15,12 @@ import logging
 
 import google
 import grpc
-from pyspark.sql.connect.client import ChannelBuilder
+from google.cloud.dataproc_spark_connect.version_compat import IS_PYSPARK_4_PLUS
+
+if IS_PYSPARK_4_PLUS:
+    from pyspark.sql.connect.client.core import DefaultChannelBuilder as ChannelBuilder
+else:
+    from pyspark.sql.connect.client import ChannelBuilder
 
 from . import proxy
 
@@ -42,6 +47,7 @@ class DataprocChannelBuilder(ChannelBuilder):
 
     def __init__(self, url, is_active_callback=None):
         self._is_active_callback = is_active_callback
+        # Both PySpark 3.5 ChannelBuilder and 4.0 DefaultChannelBuilder take URL
         super().__init__(url)
 
     def toChannel(self) -> grpc.Channel:
@@ -88,6 +94,7 @@ class ProxiedChannel(grpc.Channel):
         self._proxy = proxy.DataprocSessionProxy(0, target_host)
         self._proxy.start()
         self._proxied_connect_url = f"sc://localhost:{self._proxy.port}"
+        # Both versions now use the same constructor pattern
         self._wrapped = ChannelBuilder(self._proxied_connect_url).toChannel()
 
     def __enter__(self):
