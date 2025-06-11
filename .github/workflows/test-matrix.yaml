@@ -15,7 +15,7 @@
 name: Test Matrix - PySpark Versions
 on:
   push:
-    branches: [ main, prod ]
+    branches: [ main, prod, for4 ]
   pull_request:
     branches: [ main, prod ]
 
