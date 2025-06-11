@@ -52,14 +52,10 @@ jobs:
       run: |
         pip install "pyspark[connect]==${{ matrix.pyspark-version }}"
     
-    - name: Run compatibility validation
-      run: |
-        python test_both_versions.py
-    
     - name: Run unit tests
       run: |
         pytest tests/unit/ -v --tb=short
     
-    - name: Run version-specific tests
+    - name: Run version compatibility tests
       run: |
         pytest tests/unit/test_version_compat.py -v
