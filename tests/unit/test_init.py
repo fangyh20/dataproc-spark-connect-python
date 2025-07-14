@@ -17,6 +17,7 @@ from unittest import mock
 
 
 class TestPythonVersionCheck(unittest.TestCase):
+
     def test_python_version_warning_for_old_version(self):
         """Test that warning is shown for Python < 3.11"""
         # Create a mock version_info object with the necessary attributes
@@ -25,20 +26,25 @@ class TestPythonVersionCheck(unittest.TestCase):
         mock_version_info.major = 3
         mock_version_info.minor = 10
         mock_version_info.micro = 5
-        
-        with mock.patch('google.cloud.dataproc_spark_connect.sys.version_info', mock_version_info):
-            with mock.patch('warnings.warn') as mock_warn:
+
+        with mock.patch(
+            "google.cloud.dataproc_spark_connect.sys.version_info",
+            mock_version_info,
+        ):
+            with mock.patch("warnings.warn") as mock_warn:
                 # Clear module cache to force re-import
-                if 'google.cloud.dataproc_spark_connect' in sys.modules:
-                    del sys.modules['google.cloud.dataproc_spark_connect']
-                
+                if "google.cloud.dataproc_spark_connect" in sys.modules:
+                    del sys.modules["google.cloud.dataproc_spark_connect"]
+
                 # Import the module to trigger the version check
                 import google.cloud.dataproc_spark_connect
-                
+
                 # Verify warning was called
                 mock_warn.assert_called()
                 warning_message = mock_warn.call_args[0][0]
-                self.assertIn("Python 3.11 or higher is recommended", warning_message)
+                self.assertIn(
+                    "Python 3.11 or higher is recommended", warning_message
+                )
                 self.assertIn("You are using Python 3.10.5", warning_message)
 
     def test_no_python_version_warning_for_new_version(self):
@@ -49,21 +55,26 @@ class TestPythonVersionCheck(unittest.TestCase):
         mock_version_info.major = 3
         mock_version_info.minor = 11
         mock_version_info.micro = 0
-        
-        with mock.patch('google.cloud.dataproc_spark_connect.sys.version_info', mock_version_info):
-            with mock.patch('warnings.warn') as mock_warn:
+
+        with mock.patch(
+            "google.cloud.dataproc_spark_connect.sys.version_info",
+            mock_version_info,
+        ):
+            with mock.patch("warnings.warn") as mock_warn:
                 # Clear module cache to force re-import
-                if 'google.cloud.dataproc_spark_connect' in sys.modules:
-                    del sys.modules['google.cloud.dataproc_spark_connect']
-                
+                if "google.cloud.dataproc_spark_connect" in sys.modules:
+                    del sys.modules["google.cloud.dataproc_spark_connect"]
+
                 # Import the module to trigger the version check
                 import google.cloud.dataproc_spark_connect
-                
+
                 # Check that no Python version warning was called
                 for call in mock_warn.call_args_list:
                     warning_message = call[0][0]
-                    self.assertNotIn("Python 3.11 or higher is recommended", warning_message)
+                    self.assertNotIn(
+                        "Python 3.11 or higher is recommended", warning_message
+                    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
