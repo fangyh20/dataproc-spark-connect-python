@@ -39,13 +39,12 @@ class TestPythonVersionCheck(unittest.TestCase):
                 # Import the module to trigger the version check
                 import google.cloud.dataproc_spark_connect
 
-                # Verify warning was called
-                mock_warn.assert_called()
-                warning_message = mock_warn.call_args[0][0]
-                self.assertIn(
-                    "Python 3.11 or higher is recommended", warning_message
+                # Verify warning was called with the expected message
+                expected_warning = (
+                    "Python 3.11 or higher is recommended for optimal compatibility. "
+                    "You are using Python 3.10.5."
                 )
-                self.assertIn("You are using Python 3.10.5", warning_message)
+                mock_warn.assert_any_call(expected_warning)
 
     def test_no_python_version_warning_for_new_version(self):
         """Test that no warning is shown for Python >= 3.11"""
@@ -68,12 +67,22 @@ class TestPythonVersionCheck(unittest.TestCase):
                 # Import the module to trigger the version check
                 import google.cloud.dataproc_spark_connect
 
-                # Check that no Python version warning was called
+                # Check that the Python version warning was NOT called
+                # We check for any call containing our specific warning pattern
+                python_version_warning_called = False
                 for call in mock_warn.call_args_list:
-                    warning_message = call[0][0]
-                    self.assertNotIn(
-                        "Python 3.11 or higher is recommended", warning_message
-                    )
+                    if call[
+                        0
+                    ] and "Python 3.11 or higher is recommended" in str(
+                        call[0][0]
+                    ):
+                        python_version_warning_called = True
+                        break
+
+                self.assertFalse(
+                    python_version_warning_called,
+                    "Python version warning should not be shown for Python >= 3.11",
+                )
 
 
 if __name__ == "__main__":
