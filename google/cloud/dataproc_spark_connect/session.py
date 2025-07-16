@@ -158,9 +158,8 @@ class DataprocSparkSession(SparkSession):
         def runtimeProperties(self, properties: Dict[str, str]):
             with self._lock:
                 config = self._ensure_dataproc_config()
-                for key, value in properties.items():
-                    config.runtime_config.properties[key] = value
-                    self._options[key] = value
+                config.runtime_config.properties.update(properties)
+                self._options.update(properties)
                 return self
 
         def serviceAccount(self, account: str):
@@ -220,8 +219,7 @@ class DataprocSparkSession(SparkSession):
         def labels(self, labels: Dict[str, str]):
             with self._lock:
                 config = self._ensure_dataproc_config()
-                for key, value in labels.items():
-                    config.labels[key] = value
+                config.labels.update(labels)
                 return self
 
         def remote(self, url: Optional[str] = None) -> "SparkSession.Builder":

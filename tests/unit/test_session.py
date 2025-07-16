@@ -63,6 +63,43 @@ class DataprocRemoteSparkSessionBuilderTests(unittest.TestCase):
         if session is not None:
             session.stop()
 
+    @staticmethod
+    def _setup_session_creation_mocks(
+        mock_is_s8s_session_active,
+        mock_dataproc_session_id,
+        mock_client_config,
+        mock_session_controller_client,
+        mock_credentials,
+        session_id="sc-20240702-103952-abcdef",
+        session_uuid="c002e4ef-fe5e-41a8-a157-160aa73e4f7f",
+    ):
+        """Helper method to set up common mocks for session creation tests."""
+        mock_is_s8s_session_active.return_value = True
+        mock_session_controller_client_instance = (
+            mock_session_controller_client.return_value
+        )
+        mock_dataproc_session_id.return_value = session_id
+        mock_client_config.return_value = ConfigResult.fromProto(
+            ConfigResponse()
+        )
+
+        cred = mock.MagicMock()
+        cred.token = "token"
+        mock_credentials.return_value = (cred, "")
+
+        mock_operation = mock.Mock()
+        session_response = Session()
+        session_response.runtime_info.endpoints = {
+            "Spark Connect Server": "sc://spark-connect-server.example.com:443"
+        }
+        session_response.uuid = session_uuid
+        mock_operation.result.side_effect = [session_response]
+        mock_session_controller_client_instance.create_session.return_value = (
+            mock_operation
+        )
+
+        return mock_session_controller_client_instance
+
     @mock.patch("google.auth.default")
     @mock.patch("google.cloud.dataproc_v1.SessionControllerClient")
     @mock.patch("pyspark.sql.connect.client.SparkConnectClient.config")
@@ -1457,6 +1494,43 @@ class DataprocSparkConnectClientTest(unittest.TestCase):
         if session is not None:
             session.stop()
 
+    @staticmethod
+    def _setup_session_creation_mocks(
+        mock_is_s8s_session_active,
+        mock_dataproc_session_id,
+        mock_client_config,
+        mock_session_controller_client,
+        mock_credentials,
+        session_id="sc-20240702-103952-abcdef",
+        session_uuid="c002e4ef-fe5e-41a8-a157-160aa73e4f7f",
+    ):
+        """Helper method to set up common mocks for session creation tests."""
+        mock_is_s8s_session_active.return_value = True
+        mock_session_controller_client_instance = (
+            mock_session_controller_client.return_value
+        )
+        mock_dataproc_session_id.return_value = session_id
+        mock_client_config.return_value = ConfigResult.fromProto(
+            ConfigResponse()
+        )
+
+        cred = mock.MagicMock()
+        cred.token = "token"
+        mock_credentials.return_value = (cred, "")
+
+        mock_operation = mock.Mock()
+        session_response = Session()
+        session_response.runtime_info.endpoints = {
+            "Spark Connect Server": "sc://spark-connect-server.example.com:443"
+        }
+        session_response.uuid = session_uuid
+        mock_operation.result.side_effect = [session_response]
+        mock_session_controller_client_instance.create_session.return_value = (
+            mock_operation
+        )
+
+        return mock_session_controller_client_instance
+
     @mock.patch("google.auth.default")
     @mock.patch("google.cloud.dataproc_v1.SessionControllerClient")
     @mock.patch("pyspark.sql.connect.client.SparkConnectClient.config")
@@ -1669,26 +1743,14 @@ class DataprocSparkConnectClientTest(unittest.TestCase):
         mock_credentials,
     ):
         session = None
-        mock_is_s8s_session_active.return_value = True
         mock_session_controller_client_instance = (
-            mock_session_controller_client.return_value
-        )
-        mock_dataproc_session_id.return_value = "sc-20240702-103952-abcdef"
-        mock_client_config.return_value = ConfigResult.fromProto(
-            ConfigResponse()
-        )
-        cred = mock.MagicMock()
-        cred.token = "token"
-        mock_credentials.return_value = (cred, "")
-        mock_operation = mock.Mock()
-        session_response = Session()
-        session_response.runtime_info.endpoints = {
-            "Spark Connect Server": "sc://spark-connect-server.example.com:443"
-        }
-        session_response.uuid = "c002e4ef-fe5e-41a8-a157-160aa73e4f7f"
-        mock_operation.result.side_effect = [session_response]
-        mock_session_controller_client_instance.create_session.return_value = (
-            mock_operation
+            self._setup_session_creation_mocks(
+                mock_is_s8s_session_active,
+                mock_dataproc_session_id,
+                mock_client_config,
+                mock_session_controller_client,
+                mock_credentials,
+            )
         )
 
         try:
@@ -1756,26 +1818,14 @@ class DataprocSparkConnectClientTest(unittest.TestCase):
         mock_credentials,
     ):
         session = None
-        mock_is_s8s_session_active.return_value = True
         mock_session_controller_client_instance = (
-            mock_session_controller_client.return_value
-        )
-        mock_dataproc_session_id.return_value = "sc-20240702-103952-abcdef"
-        mock_client_config.return_value = ConfigResult.fromProto(
-            ConfigResponse()
-        )
-        cred = mock.MagicMock()
-        cred.token = "token"
-        mock_credentials.return_value = (cred, "")
-        mock_operation = mock.Mock()
-        session_response = Session()
-        session_response.runtime_info.endpoints = {
-            "Spark Connect Server": "sc://spark-connect-server.example.com:443"
-        }
-        session_response.uuid = "c002e4ef-fe5e-41a8-a157-160aa73e4f7f"
-        mock_operation.result.side_effect = [session_response]
-        mock_session_controller_client_instance.create_session.return_value = (
-            mock_operation
+            self._setup_session_creation_mocks(
+                mock_is_s8s_session_active,
+                mock_dataproc_session_id,
+                mock_client_config,
+                mock_session_controller_client,
+                mock_credentials,
+            )
         )
 
         try:
@@ -1853,26 +1903,14 @@ class DataprocSparkConnectClientTest(unittest.TestCase):
         mock_credentials,
     ):
         session = None
-        mock_is_s8s_session_active.return_value = True
         mock_session_controller_client_instance = (
-            mock_session_controller_client.return_value
-        )
-        mock_dataproc_session_id.return_value = "sc-20240702-103952-abcdef"
-        mock_client_config.return_value = ConfigResult.fromProto(
-            ConfigResponse()
-        )
-        cred = mock.MagicMock()
-        cred.token = "token"
-        mock_credentials.return_value = (cred, "")
-        mock_operation = mock.Mock()
-        session_response = Session()
-        session_response.runtime_info.endpoints = {
-            "Spark Connect Server": "sc://spark-connect-server.example.com:443"
-        }
-        session_response.uuid = "c002e4ef-fe5e-41a8-a157-160aa73e4f7f"
-        mock_operation.result.side_effect = [session_response]
-        mock_session_controller_client_instance.create_session.return_value = (
-            mock_operation
+            self._setup_session_creation_mocks(
+                mock_is_s8s_session_active,
+                mock_dataproc_session_id,
+                mock_client_config,
+                mock_session_controller_client,
+                mock_credentials,
+            )
         )
 
         try:
@@ -1935,26 +1973,14 @@ class DataprocSparkConnectClientTest(unittest.TestCase):
         mock_credentials,
     ):
         session = None
-        mock_is_s8s_session_active.return_value = True
         mock_session_controller_client_instance = (
-            mock_session_controller_client.return_value
-        )
-        mock_dataproc_session_id.return_value = "sc-20240702-103952-abcdef"
-        mock_client_config.return_value = ConfigResult.fromProto(
-            ConfigResponse()
-        )
-        cred = mock.MagicMock()
-        cred.token = "token"
-        mock_credentials.return_value = (cred, "")
-        mock_operation = mock.Mock()
-        session_response = Session()
-        session_response.runtime_info.endpoints = {
-            "Spark Connect Server": "sc://spark-connect-server.example.com:443"
-        }
-        session_response.uuid = "c002e4ef-fe5e-41a8-a157-160aa73e4f7f"
-        mock_operation.result.side_effect = [session_response]
-        mock_session_controller_client_instance.create_session.return_value = (
-            mock_operation
+            self._setup_session_creation_mocks(
+                mock_is_s8s_session_active,
+                mock_dataproc_session_id,
+                mock_client_config,
+                mock_session_controller_client,
+                mock_credentials,
+            )
         )
 
         try:
